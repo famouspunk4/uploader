@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Studio - Audio Video Creator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Identity Services Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fef2f2',
+                            100: '#ffe1e1',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(75, 85, 99, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- Header Navbar -->
+    <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-600 text-white p-2 rounded-xl shadow-lg shadow-brand-600/30 flex items-center justify-center w-10 h-10">
+                    <i class="fa-solid fa-youtube text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        YouTube Studio Uploader
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Upload MP3s & Cover Art Directly to YouTube</p>
+                </div>
+            </div>
+
+            <!-- YouTube Authentication & Settings Status -->
+            <div class="flex items-center gap-3">
+                <!-- Settings Drawer Toggle Button -->
+                <button onclick="toggleSettingsModal()" class="p-2 rounded-xl bg-slate-700/60 hover:bg-slate-700 text-slate-300 transition text-xs flex items-center gap-2 border border-slate-600/50">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                    <span class="hidden md:inline">API Setup</span>
+                </button>
+
+                <!-- Auth Status / Sign In Button -->
+                <div id="authStatusContainer" class="flex items-center gap-2">
+                    <div id="userBadge" class="hidden items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span id="userNameDisplay" class="font-medium">YouTube Connected</span>
+                        <button onclick="handleSignOut()" class="ml-2 text-slate-400 hover:text-red-400 transition" title="Sign Out">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+
+                    <button id="loginBtn" onclick="handleAuthClick()" class="text-xs sm:text-sm px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium shadow-lg shadow-brand-600/25 transition flex items-center gap-2">
+                        <i class="fa-brands fa-google"></i>
+                        <span>Sign In with YouTube</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Artwork & Track Queue (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+
+            <!-- Global Cover Artwork Card -->
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 p-5 shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-image text-brand-500"></i> Cover Artwork
+                    </h2>
+                    <span id="imageStatusBadge" class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">Default Cover</span>
+                </div>
+
+                <div id="artDropzone" class="group relative rounded-xl border-2 border-dashed border-slate-600 hover:border-brand-500 bg-slate-900/50 hover:bg-slate-900/80 transition-all cursor-pointer overflow-hidden aspect-video flex flex-col items-center justify-center p-4 text-center">
+                    <img id="artworkPreview" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" alt="Cover Preview">
+                    <div class="relative z-10 flex flex-col items-center gap-2 p-2 bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-700/50">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-brand-500"></i>
+                        <span class="text-xs font-medium text-slate-200">Click or Drag Image Here</span>
+                        <span class="text-[10px] text-slate-400">JPG or PNG (16:9 recommended)</span>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Audio Queue -->
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 p-5 shadow-xl flex-1 flex flex-col">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-brand-500"></i> MP3 Queue (<span id="trackCount">0</span>)
+                    </h2>
+                    <button onclick="clearAllTracks()" class="text-xs text-slate-400 hover:text-red-400 transition">
+                        <i class="fa-solid fa-trash-can"></i> Clear Queue
+                    </button>
+                </div>
+
+                <!-- Dropzone for MP3s -->
+                <div id="audioDropzone" class="relative rounded-xl border-2 border-dashed border-slate-600 hover:border-brand-500 bg-slate-900/40 hover:bg-slate-900/70 transition p-4 mb-4 text-center cursor-pointer">
+                    <input type="file" id="audioInput" accept="audio/mp3, audio/mpeg, audio/wav" multiple class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div class="flex items-center justify-center gap-3 text-slate-300">
+                        <i class="fa-solid fa-music text-xl text-brand-500"></i>
+                        <span class="text-xs font-medium">Add MP3 files or <span class="text-brand-500 underline">browse</span></span>
+                    </div>
+                </div>
+
+                <!-- Track Queue -->
+                <div id="trackList" class="flex-1 overflow-y-auto space-y-2 max-h-[300px] pr-1">
+                    <div id="emptyQueueState" class="flex flex-col items-center justify-center h-40 text-slate-500 text-center border border-dashed border-slate-700/50 rounded-xl p-4">
+                        <i class="fa-solid fa-compact-disc text-3xl mb-2 text-slate-600"></i>
+                        <p class="text-xs">No MP3 files queued.</p>
+                        <p class="text-[10px] text-slate-600">Upload audio tracks to begin.</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Canvas Preview, Metadata & Upload (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+
+            <!-- Video Player & Canvas Preview -->
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 p-5 shadow-xl flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-play text-brand-500"></i> Player & Visualizer
+                    </h2>
+                    <span id="playerTrackTitle" class="text-xs font-medium text-brand-500 truncate max-w-[220px]">No Track Selected</span>
+                </div>
+
+                <!-- Render Canvas -->
+                <div class="relative aspect-video rounded-xl overflow-hidden bg-black border border-slate-700 flex items-center justify-center shadow-2xl group">
+                    <canvas id="videoCanvas" class="w-full h-full object-cover"></canvas>
+
+                    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-4">
+                        <div class="flex justify-between items-center text-xs text-slate-300 bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                            <span class="font-semibold text-white">Browser Video Encoder</span>
+                            <span>1080p Canvas (16:9)</span>
+                        </div>
+
+                        <div class="flex justify-center items-center">
+                            <button id="canvasPlayBtn" onclick="togglePlayPause()" class="w-14 h-14 rounded-full bg-brand-600/90 hover:bg-brand-500 text-white flex items-center justify-center text-xl shadow-lg transition transform hover:scale-105">
+                                <i id="canvasPlayIcon" class="fa-solid fa-play ml-1"></i>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-[11px] text-slate-300 font-mono">
+                                <span id="currentTime">0:00</span>
+                                <span id="durationTime">0:00</span>
+                            </div>
+                            <input type="range" id="seekBar" value="0" min="0" max="100" class="w-full accent-brand-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <audio id="audioPlayer" class="hidden"></audio>
+            </div>
+
+            <!-- YouTube Metadata Editor -->
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 p-5 shadow-xl flex-1 flex flex-col justify-between space-y-4">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-700/50 pb-3 mb-4">
+                        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                            <i class="fa-solid fa-pen-to-square text-brand-500"></i> Track Metadata
+                        </h2>
+                        <span class="text-[11px] text-slate-400 bg-slate-700/40 px-2 py-1 rounded border border-slate-600/40">Active Track</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Video Title Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Title</label>
+                            <input type="text" id="trackTitleInput" placeholder="Video Title" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+                        </div>
+
+                        <!-- Video Description Input (EMPTY BY DEFAULT) -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Description <span class="text-slate-500 font-normal">(Empty by default)</span></label>
+                            <textarea id="trackDescInput" rows="3" placeholder="Enter video description..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition resize-none"></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Tags Input (EMPTY BY DEFAULT) -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Tags <span class="text-slate-500 font-normal">(Comma separated)</span></label>
+                                <input type="text" id="trackTagsInput" placeholder="music, mp3, song" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+                            </div>
+
+                            <!-- Privacy Status -->
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Privacy Status</label>
+                                <select id="trackPrivacySelect" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-brand-500 transition">
+                                    <option value="private">Private</option>
+                                    <option value="unlisted">Unlisted</option>
+                                    <option value="public">Public</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="pt-4 border-t border-slate-700/50 flex flex-wrap items-center justify-between gap-3">
+                    <button onclick="applyBatchTemplate()" class="text-xs text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i> Apply Metadata to All Tracks
+                    </button>
+
+                    <button id="uploadDirectBtn" onclick="startDirectUploadQueue()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-brand-600/30 transition flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                        <span>Upload Directly to YouTube</span>
+                    </button>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Settings Modal (OAuth Setup) -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-key text-brand-500"></i> Google OAuth Setup
+                </h3>
+                <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed">
+                To enable direct YouTube uploads, paste your <span class="font-semibold text-white">Google OAuth Client ID</span> below. It is saved securely in your browser's local storage.
+            </p>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">OAuth Client ID</label>
+                <input type="text" id="clientIdInput" placeholder="123456789-abc...apps.googleusercontent.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="toggleSettingsModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-medium rounded-xl transition">
+                    Cancel
+                </button>
+                <button onclick="saveClientId()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-xs font-medium text-white rounded-xl shadow-lg shadow-brand-600/30 transition">
+                    Save Client ID
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Progress Modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                    <i id="modalSpinner" class="fa-solid fa-spinner text-brand-500 animate-spin"></i> Uploading to YouTube
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-4">
+                <p id="modalStatusText" class="text-xs text-slate-300">Preparing media recorder and client-side encoding...</p>
+
+                <!-- Encoding Progress -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-medium text-slate-300">
+                        <span>Client-Side Video Encoding</span>
+                        <span id="encodingPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-700">
+                        <div id="encodingProgressBar" class="bg-blue-500 h-full w-0 transition-all duration-200"></div>
+                    </div>
+                </div>
+
+                <!-- YouTube API Upload Progress -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-medium text-slate-300">
+                        <span>YouTube Resumable Upload</span>
+                        <span id="uploadPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-700">
+                        <div id="uploadProgressBar" class="bg-emerald-500 h-full w-0 transition-all duration-200"></div>
+                    </div>
+                </div>
+
+                <!-- Live Log Console -->
+                <div id="uploadConsole" class="bg-slate-950 rounded-xl p-3 h-36 overflow-y-auto text-[11px] font-mono text-slate-300 space-y-1 border border-slate-800">
+                    <div class="text-slate-500">[System] Pipeline initialized...</div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end pt-2">
+                <button id="modalCloseBtn" onclick="closeModal()" disabled class="px-4 py-2 bg-slate-700 opacity-50 cursor-not-allowed text-white text-xs font-medium rounded-lg transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMessage" class="text-xs font-medium">Notification</span>
+    </div>
+
+    <script>
+        // State
+        let tracks = [];
+        let activeTrackId = null;
+        let accessToken = null;
+        let tokenClient = null;
+        let artworkImage = new Image();
+        artworkImage.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop';
+
+        // Web Audio / Visualizer State
+        let audioCtx, audioSource, analyser, dataArray;
+        let isAudioSetup = false;
+
+        // DOM References
+        const audioPlayer = document.getElementById('audioPlayer');
+        const videoCanvas = document.getElementById('videoCanvas');
+        const canvasCtx = videoCanvas.getContext('2d');
+        const trackList = document.getElementById('trackList');
+        const emptyQueueState = document.getElementById('emptyQueueState');
+        const trackTitleInput = document.getElementById('trackTitleInput');
+        const trackDescInput = document.getElementById('trackDescInput');
+        const trackTagsInput = document.getElementById('trackTagsInput');
+        const trackPrivacySelect = document.getElementById('trackPrivacySelect');
+        const seekBar = document.getElementById('seekBar');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationTimeEl = document.getElementById('durationTime');
+        const canvasPlayIcon = document.getElementById('canvasPlayIcon');
+        const playerTrackTitle = document.getElementById('playerTrackTitle');
+
+        videoCanvas.width = 1280;
+        videoCanvas.height = 720;
+
+        window.addEventListener('load', () => {
+            renderCanvas();
+            setupEventListeners();
+            loadSavedClientId();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+            document.getElementById('audioInput').addEventListener('change', handleAudioUpload);
+
+            trackTitleInput.addEventListener('input', updateActiveMetadata);
+            trackDescInput.addEventListener('input', updateActiveMetadata);
+            trackTagsInput.addEventListener('input', updateActiveMetadata);
+            trackPrivacySelect.addEventListener('change', updateActiveMetadata);
+
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+            audioPlayer.addEventListener('loadedmetadata', () => {
+                durationTimeEl.textContent = formatTime(audioPlayer.duration);
+            });
+            audioPlayer.addEventListener('ended', () => {
+                canvasPlayIcon.className = 'fa-solid fa-play ml-1';
+            });
+
+            seekBar.addEventListener('input', () => {
+                if(audioPlayer.duration) {
+                    audioPlayer.currentTime = (seekBar.value / 100) * audioPlayer.duration;
+                }
+            });
+        }
+
+        // --- Client ID & OAuth Settings ---
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveClientId() {
+            const val = document.getElementById('clientIdInput').value.trim();
+            if(!val) return;
+            localStorage.setItem('youtube_client_id', val);
+            initGoogleOAuth(val);
+            toggleSettingsModal();
+            showToast('OAuth Client ID saved!');
+        }
+
+        function loadSavedClientId() {
+            const saved = localStorage.getItem('youtube_client_id');
+            if(saved) {
+                document.getElementById('clientIdInput').value = saved;
+                initGoogleOAuth(saved);
+            }
+        }
+
+        function initGoogleOAuth(clientId) {
+            if(typeof google === 'undefined' || !google.accounts) return;
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: 'https://www.googleapis.com/auth/youtube.upload',
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        accessToken = tokenResponse.access_token;
+                        document.getElementById('loginBtn').classList.add('hidden');
+                        document.getElementById('userBadge').classList.remove('hidden');
+                        document.getElementById('userBadge').classList.add('flex');
+                        showToast('Successfully signed in to YouTube!');
+                    }
+                },
+            });
+        }
+
+        function handleAuthClick() {
+            const clientId = document.getElementById('clientIdInput').value.trim();
+            if(!clientId) {
+                toggleSettingsModal();
+                showToast('Please enter your Google OAuth Client ID first!', 'error');
+                return;
+            }
+            if(!tokenClient) {
+                initGoogleOAuth(clientId);
+            }
+            tokenClient.requestAccessToken();
+        }
+
+        function handleSignOut() {
+            accessToken = null;
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('userBadge').classList.add('hidden');
+            document.getElementById('userBadge').classList.remove('flex');
+            showToast('Signed out of YouTube');
+        }
+
+        // --- Artwork & Audio File Inputs ---
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                artworkImage = new Image();
+                artworkImage.onload = () => {
+                    document.getElementById('artworkPreview').src = event.target.result;
+                    document.getElementById('imageStatusBadge').textContent = 'Custom Cover';
+                    document.getElementById('imageStatusBadge').className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                    renderCanvas();
+                    showToast('Cover artwork updated!');
+                };
+                artworkImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleAudioUpload(e) {
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            files.forEach(file => {
+                const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                const track = {
+                    id: 'track_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    file: file,
+                    title: cleanName,
+                    description: '', // Empty description by default
+                    tags: '',        // Empty tags by default
+                    privacyStatus: 'private',
+                    url: URL.createObjectURL(file)
+                };
+                tracks.push(track);
+            });
+
+            renderTrackList();
+            if (!activeTrackId && tracks.length > 0) {
+                selectTrack(tracks[0].id);
+            }
+            showToast(`Added ${files.length} track(s) to queue`);
+            e.target.value = '';
+        }
+
+        // --- Track List & Reordering ---
+        let draggedTrackIndex = null;
+
+        function renderTrackList() {
+            document.getElementById('trackCount').textContent = tracks.length;
+
+            if (tracks.length === 0) {
+                emptyQueueState.style.display = 'flex';
+                trackList.innerHTML = '';
+                trackList.appendChild(emptyQueueState);
+                return;
+            }
+
+            emptyQueueState.style.display = 'none';
+            trackList.innerHTML = '';
+
+            tracks.forEach((track, index) => {
+                const isActive = track.id === activeTrackId;
+                const el = document.createElement('div');
+                el.draggable = true;
+                el.className = `p-3 rounded-xl border transition flex items-center justify-between gap-3 cursor-grab active:cursor-grabbing ${
+                    isActive 
+                        ? 'bg-brand-600/10 border-brand-500/50 text-white' 
+                        : 'bg-slate-900/60 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                }`;
+
+                el.addEventListener('dragstart', (e) => {
+                    draggedTrackIndex = index;
+                    e.dataTransfer.effectAllowed = 'move';
+                    el.classList.add('opacity-50');
+                });
+
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('opacity-50');
+                    draggedTrackIndex = null;
+                });
+
+                el.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                el.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedTrackIndex !== null && draggedTrackIndex !== index) {
+                        const movedTrack = tracks.splice(draggedTrackIndex, 1)[0];
+                        tracks.splice(index, 0, movedTrack);
+                        renderTrackList();
+                    }
+                });
+
+                el.onclick = () => selectTrack(track.id);
+
+                el.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="text-slate-500 hover:text-slate-300 px-1 cursor-grab">
+                            <i class="fa-solid fa-grip-vertical text-xs"></i>
+                        </div>
+                        <span class="text-xs font-mono w-4 text-slate-500">${index + 1}</span>
+                        <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-brand-500 shrink-0">
+                            <i class="fa-solid ${isActive ? 'fa-headphones text-brand-400' : 'fa-music'}"></i>
+                        </div>
+                        <div class="truncate">
+                            <h4 class="text-xs font-semibold truncate ${isActive ? 'text-brand-400' : 'text-slate-200'}">${escapeHtml(track.title)}</h4>
+                            <p class="text-[10px] text-slate-400 truncate">${escapeHtml(track.file.name)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="event.stopPropagation(); moveTrack(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="text-slate-500 hover:text-slate-200 disabled:opacity-30 p-1 transition" title="Move Up">
+                            <i class="fa-solid fa-arrow-up text-xs"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); moveTrack(${index}, 1)" ${index === tracks.length - 1 ? 'disabled' : ''} class="text-slate-500 hover:text-slate-200 disabled:opacity-30 p-1 transition" title="Move Down">
+                            <i class="fa-solid fa-arrow-down text-xs"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); removeTrack('${track.id}')" class="text-slate-500 hover:text-red-400 p-1 transition ml-1" title="Delete">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                `;
+                trackList.appendChild(el);
+            });
+        }
+
+        function moveTrack(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= tracks.length) return;
+            const movedTrack = tracks.splice(index, 1)[0];
+            tracks.splice(newIndex, 0, movedTrack);
+            renderTrackList();
+        }
+
+        function selectTrack(id) {
+            activeTrackId = id;
+            const track = tracks.find(t => t.id === id);
+            if (!track) return;
+
+            trackTitleInput.value = track.title;
+            trackDescInput.value = track.description;
+            trackTagsInput.value = track.tags;
+            trackPrivacySelect.value = track.privacyStatus;
+
+            audioPlayer.src = track.url;
+            playerTrackTitle.textContent = track.title;
+
+            renderTrackList();
+        }
+
+        function updateActiveMetadata() {
+            if (!activeTrackId) return;
+            const track = tracks.find(t => t.id === activeTrackId);
+            if (!track) return;
+
+            track.title = trackTitleInput.value;
+            track.description = trackDescInput.value;
+            track.tags = trackTagsInput.value;
+            track.privacyStatus = trackPrivacySelect.value;
+
+            playerTrackTitle.textContent = track.title;
+            renderTrackList();
+        }
+
+        function applyBatchTemplate() {
+            if (!activeTrackId || tracks.length === 0) return;
+            const activeTrack = tracks.find(t => t.id === activeTrackId);
+
+            tracks.forEach(t => {
+                t.description = activeTrack.description;
+                t.tags = activeTrack.tags;
+                t.privacyStatus = activeTrack.privacyStatus;
+            });
+
+            showToast('Applied metadata settings to all tracks!');
+        }
+
+        function removeTrack(id) {
+            tracks = tracks.filter(t => t.id !== id);
+            if (activeTrackId === id) {
+                activeTrackId = tracks.length > 0 ? tracks[0].id : null;
+                if (activeTrackId) selectTrack(activeTrackId);
+            }
+            renderTrackList();
+        }
+
+        function clearAllTracks() {
+            tracks = [];
+            activeTrackId = null;
+            audioPlayer.pause();
+            audioPlayer.src = '';
+            playerTrackTitle.textContent = 'No Track Selected';
+            trackTitleInput.value = '';
+            trackDescInput.value = '';
+            trackTagsInput.value = '';
+            renderTrackList();
+        }
+
+        // --- Visualizer & Player ---
+        function togglePlayPause() {
+            if (!audioPlayer.src) {
+                showToast('Upload or select an audio file first', 'error');
+                return;
+            }
+
+            if (!isAudioSetup) setupWebAudio();
+
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                canvasPlayIcon.className = 'fa-solid fa-pause';
+            } else {
+                audioPlayer.pause();
+                canvasPlayIcon.className = 'fa-solid fa-play ml-1';
+            }
+        }
+
+        function setupWebAudio() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                audioSource = audioCtx.createMediaElementSource(audioPlayer);
+                audioSource.connect(analyser);
+                analyser.connect(audioCtx.destination);
+                analyser.fftSize = 128;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                isAudioSetup = true;
+            } catch(e) {
+                console.warn('AudioContext setup error', e);
+            }
+        }
+
+        function updateProgress() {
+            if (audioPlayer.duration) {
+                seekBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+            }
+        }
+
+        function renderCanvas() {
+            requestAnimationFrame(renderCanvas);
+
+            canvasCtx.fillStyle = '#0f172a';
+            canvasCtx.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
+
+            if (artworkImage.complete && artworkImage.naturalWidth !== 0) {
+                canvasCtx.globalAlpha = 0.25;
+                canvasCtx.drawImage(artworkImage, 0, 0, videoCanvas.width, videoCanvas.height);
+                canvasCtx.globalAlpha = 1.0;
+
+                const coverSize = 400;
+                const x = (videoCanvas.width - coverSize) / 2;
+                const y = (videoCanvas.height - coverSize) / 2 - 20;
+
+                canvasCtx.save();
+                canvasCtx.shadowColor = 'rgba(0,0,0,0.6)';
+                canvasCtx.shadowBlur = 30;
+                canvasCtx.drawImage(artworkImage, x, y, coverSize, coverSize);
+                canvasCtx.restore();
+            }
+
+            if (isAudioSetup && !audioPlayer.paused) {
+                analyser.getByteFrequencyData(dataArray);
+
+                const barWidth = (videoCanvas.width / dataArray.length) * 1.5;
+                let barHeight;
+                let x = 0;
+
+                for (let i = 0; i < dataArray.length; i++) {
+                    barHeight = (dataArray[i] / 255) * 120;
+                    canvasCtx.fillStyle = `rgba(239, 68, 68, ${0.4 + (barHeight / 120) * 0.6})`;
+                    canvasCtx.fillRect(x, videoCanvas.height - barHeight - 20, barWidth - 2, barHeight);
+                    x += barWidth;
+                }
+            }
+        }
+
+        // --- Client Encoding & Direct Upload Pipeline ---
+        async function startDirectUploadQueue() {
+            if(!accessToken) {
+                showToast('Please sign in to YouTube first!', 'error');
+                handleAuthClick();
+                return;
+            }
+            if(tracks.length === 0) {
+                showToast('Queue is empty! Upload MP3 files first.', 'error');
+                return;
+            }
+
+            const modal = document.getElementById('uploadModal');
+            const consoleEl = document.getElementById('uploadConsole');
+            const modalStatusText = document.getElementById('modalStatusText');
+            const closeBtn = document.getElementById('modalCloseBtn');
+
+            modal.classList.remove('hidden');
+            consoleEl.innerHTML = '<div class="text-slate-500">[System] Initializing Pipeline...</div>';
+            closeBtn.disabled = true;
+            closeBtn.className = "px-4 py-2 bg-slate-700 opacity-50 cursor-not-allowed text-white text-xs font-medium rounded-lg transition";
+
+            for(let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+                logConsole(`\n[Track ${i+1}/${tracks.length}] Processing "${track.title}"`);
+                modalStatusText.textContent = `Processing Track ${i+1} of ${tracks.length}: "${track.title}"`;
+
+                try {
+                    logConsole(`[Encoding] Rendering MP3 + Image...`);
+                    const videoBlob = await encodeTrackToVideoBlob(track);
+                    logConsole(`[Encoding] Generated video blob (${(videoBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+
+                    logConsole(`[YouTube API] Initiating Resumable Upload session...`);
+                    await uploadVideoToYouTube(track, videoBlob);
+                    logConsole(`[YouTube API] Successfully uploaded "${track.title}"!`);
+                } catch(err) {
+                    logConsole(`[Error] Failed processing track "${track.title}": ${err.message}`);
+                }
+            }
+
+            modalStatusText.textContent = "All queued uploads completed!";
+            document.getElementById('modalSpinner').className = "fa-solid fa-circle-check text-emerald-400";
+            closeBtn.disabled = false;
+            closeBtn.className = "px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-lg transition cursor-pointer";
+        }
+
+        function encodeTrackToVideoBlob(track) {
+            return new Promise((resolve, reject) => {
+                const tempAudio = new Audio(track.url);
+                const encodingBar = document.getElementById('encodingProgressBar');
+                const encodingPercent = document.getElementById('encodingPercent');
+
+                tempAudio.onloadedmetadata = () => {
+                    const canvasStream = videoCanvas.captureStream(30);
+                    
+                    const tempAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = tempAudioCtx.createMediaElementSource(tempAudio);
+                    const dest = tempAudioCtx.createMediaStreamDestination();
+                    source.connect(dest);
+                    source.connect(tempAudioCtx.destination);
+
+                    const combinedStream = new MediaStream([
+                        ...canvasStream.getVideoTracks(),
+                        ...dest.stream.getAudioTracks()
+                    ]);
+
+                    let mimeType = 'video/webm;codecs=vp8,opus';
+                    if (!MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = 'video/mp4';
+                    }
+
+                    const recorder = new MediaRecorder(combinedStream, { mimeType: mimeType });
+                    const chunks = [];
+
+                    recorder.ondataavailable = e => chunks.push(e.data);
+                    recorder.onstop = () => {
+                        tempAudioCtx.close();
+                        const blob = new Blob(chunks, { type: mimeType });
+                        resolve(blob);
+                    };
+
+                    tempAudio.ontimeupdate = () => {
+                        if(tempAudio.duration) {
+                            const pct = Math.round((tempAudio.currentTime / tempAudio.duration) * 100);
+                            encodingBar.style.width = `${pct}%`;
+                            encodingPercent.textContent = `${pct}%`;
+                        }
+                    };
+
+                    tempAudio.onended = () => recorder.stop();
+
+                    tempAudio.play().then(() => {
+                        recorder.start();
+                    }).catch(reject);
+                };
+            });
+        }
+
+        async function uploadVideoToYouTube(track, videoBlob) {
+            const uploadBar = document.getElementById('uploadProgressBar');
+            const uploadPercent = document.getElementById('uploadPercent');
+
+            const metadata = {
+                snippet: {
+                    title: track.title,
+                    description: track.description,
+                    tags: track.tags ? track.tags.split(',').map(t => t.trim()) : [],
+                    categoryId: "10"
+                },
+                status: {
+                    privacyStatus: track.privacyStatus
+                }
+            };
+
+            const initResponse = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'X-Upload-Content-Length': videoBlob.size,
+                    'X-Upload-Content-Type': videoBlob.type
+                },
+                body: JSON.stringify(metadata)
+            });
+
+            if (!initResponse.ok) {
+                const errText = await initResponse.text();
+                throw new Error(`Failed to initiate upload session: ${errText}`);
+            }
+
+            const uploadUrl = initResponse.headers.get('Location');
+            if(!uploadUrl) throw new Error('Missing upload location header from YouTube API');
+
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', uploadUrl, true);
+                xhr.setRequestHeader('Content-Type', videoBlob.type);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        uploadBar.style.width = `${pct}%`;
+                        uploadPercent.textContent = `${pct}%`;
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200 || xhr.status === 201) {
+                        const res = JSON.parse(xhr.responseText);
+                        logConsole(`[YouTube API] Video URL: https://youtu.be/${res.id}`);
+                        resolve(res);
+                    } else {
+                        reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
+                    }
+                };
+
+                xhr.onerror = () => reject(new Error('Network error during upload'));
+                xhr.send(videoBlob);
+            });
+        }
+
+        // Helpers
+        function logConsole(msg) {
+            const consoleEl = document.getElementById('uploadConsole');
+            const div = document.createElement('div');
+            div.textContent = msg;
+            consoleEl.appendChild(div);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function closeModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.textContent = message;
+            toastIcon.className = type === 'error' 
+                ? 'fa-solid fa-circle-exclamation text-brand-500' 
+                : 'fa-solid fa-circle-check text-emerald-400';
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
