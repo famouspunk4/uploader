@@ -4,3 +4,5 @@
 Steps
 <br>
 1. Download [index.html](index.html)
+<br>
+2. Create a folder 
