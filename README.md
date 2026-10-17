@@ -1,6 +1,6 @@
 [uploader](http://localhost:8000/)
 <br>
 <br>
-[Steps]
+Steps
 <br>
-[1. Download index.html]
+1. Download [index.html](index.html)
