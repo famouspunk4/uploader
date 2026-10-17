@@ -1,1 +1,1 @@
-[uploader](https://famouspunk4.github.io/uploader/)
+[uploader](http://localhost:8000/)
